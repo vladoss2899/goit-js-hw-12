@@ -43,7 +43,6 @@
   background: #1ae045;
   color: #fff;
   border: none;
-  margin-top: 10px;
 }
 
 .btn:hover {
@@ -108,4 +107,8 @@
   height: 50px;
   margin: 0 auto;
   background-repeat: no-repeat;
+}
+
+.aa {
+  margin-top: 10px;
 }
