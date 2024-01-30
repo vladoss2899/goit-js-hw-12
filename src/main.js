@@ -91,12 +91,10 @@ function fetchImages(query) {
     per_page: queryParams.pageSize,
     page: queryParams.page,
   });
-
-  //  робимо запит
   return axios.get(`${BASE_URL}/?${searchParams}`);
 }
 
-async function handleLoadMore() {
+async function handleLoadMore(event) {
   queryParams.page += 1;
   loaderEl.style.display = 'block';
   loadMoreBtn.classList.add('is-hidden');
