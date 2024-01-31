@@ -5,15 +5,15 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const searchForm = document.querySelector('.search-form');
-  const gallery = document.querySelector('.gallery');
-  const loaderEl = document.querySelector('.loader');
-  const loadMoreBtn = document.querySelector('[data-action="load-more"]');
-  const messageFinishGallery = document.querySelector('.finish-loader');
+  const searchFormElement = document.querySelector('.search-form');
+  const galleryElement = document.querySelector('.gallery');
+  const loaderElement = document.querySelector('.loader');
+  const loadMoreButton = document.querySelector('[data-action="load-more"]');
+  const messageFinishGalleryElement = document.querySelector('.finish-loader');
 
-  const BASE_URL = 'https://pixabay.com/api';
-  const API_KEY = '41900218-778e908913d1efd90b8f97d56';
-  const queryParams = {
+  const PIXABAY_BASE_URL = 'https://pixabay.com/api';
+  const PIXABAY_API_KEY = '41900218-778e908913d1efd90b8f97d56';
+  const queryParameters = {
     query: '',
     page: 1,
     maxPage: 0,
@@ -31,23 +31,23 @@ document.addEventListener('DOMContentLoaded', () => {
     icon: 'none',
   };
 
-  searchForm.addEventListener('submit', fetchData);
-  loadMoreBtn.addEventListener('click', loadMoreData);
+  searchFormElement.addEventListener('submit', fetchData);
+  loadMoreButton.addEventListener('click', loadMoreData);
 
   async function fetchData(event) {
     event.preventDefault();
 
-    loaderEl.style.display = 'block';
-    loadMoreBtn.classList.add('is-hidden');
-    messageFinishGallery.classList.add('is-hidden');
-    gallery.innerHTML = '';
+    loaderElement.style.display = 'block';
+    loadMoreButton.classList.add('is-hidden');
+    messageFinishGalleryElement.classList.add('is-hidden');
+    galleryElement.innerHTML = '';
 
-    const form = event.currentTarget;
-    queryParams.query = form.elements.query.value.trim();
-    queryParams.page = 1;
+    const formElement = event.currentTarget;
+    queryParameters.query = formElement.elements.query.value.trim();
+    queryParameters.page = 1;
 
-    if (!queryParams.query) {
-      loaderEl.style.display = 'none';
+    if (!queryParameters.query) {
+      loaderElement.style.display = 'none';
       iziToast.error({
         ...iziToastConfig,
         message: 'Enter a query value, please',
@@ -56,49 +56,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const resp = await getImages(queryParams.query);
-      if (resp.data.hits.length === 0) {
+      const response = await getImages(queryParameters.query);
+      if (response.data.hits.length === 0) {
         iziToast.error({
           ...iziToastConfig,
           message:
             'Sorry, there are no images matching your search query. Please try again!',
         });
       } else {
-        renderData(resp.data.hits);
-        queryParams.maxPage = Math.ceil(
-          resp.data.totalHits / queryParams.pageSize
+        renderData(response.data.hits);
+        queryParameters.maxPage = Math.ceil(
+          response.data.totalHits / queryParameters.pageSize
         );
       }
       updateUI();
-      form.reset();
-    } catch (err) {
+      formElement.reset();
+    } catch (error) {
       showError();
     }
   }
 
   async function getImages(query) {
     const searchParams = new URLSearchParams({
-      key: API_KEY,
+      key: PIXABAY_API_KEY,
       q: query,
       image_type: 'photo',
       orientation: 'horizontal',
       safesearch: 'true',
-      per_page: queryParams.pageSize,
-      page: queryParams.page,
+      per_page: queryParameters.pageSize,
+      page: queryParameters.page,
     });
-    return axios.get(`${BASE_URL}/?${searchParams}`);
+    return axios.get(`${PIXABAY_BASE_URL}/?${searchParams}`);
   }
 
   async function loadMoreData() {
-    queryParams.page += 1;
-    loaderEl.style.display = 'block';
-    loadMoreBtn.classList.add('is-hidden');
+    queryParameters.page += 1;
+    loaderElement.style.display = 'block';
+    loadMoreButton.classList.add('is-hidden');
 
     try {
-      const respNext = await getImages(queryParams.query);
-      renderData(respNext.data.hits);
+      const nextResponse = await getImages(queryParameters.query);
+      renderData(nextResponse.data.hits);
       updateUI();
-    } catch (err) {
+    } catch (error) {
       showError();
     }
   }
@@ -144,18 +144,18 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .join('');
 
-    gallery.insertAdjacentHTML('beforeend', markup);
+    galleryElement.insertAdjacentHTML('beforeend', markup);
     lightbox.refresh();
   }
 
   function updateUI() {
-    if (queryParams.page === queryParams.maxPage) {
-      messageFinishGallery.classList.remove('is-hidden');
-      loadMoreBtn.classList.add('is-hidden');
+    if (queryParameters.page === queryParameters.maxPage) {
+      messageFinishGalleryElement.classList.remove('is-hidden');
+      loadMoreButton.classList.add('is-hidden');
     } else {
-      loadMoreBtn.classList.remove('is-hidden');
+      loadMoreButton.classList.remove('is-hidden');
     }
-    loaderEl.style.display = 'none';
+    loaderElement.style.display = 'none';
   }
 
   function showError() {
@@ -163,6 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ...iziToastConfig,
       message: 'Oops, server connection error!',
     });
-    loaderEl.style.display = 'none';
+    loaderElement.style.display = 'none';
   }
 });
