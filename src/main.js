@@ -94,7 +94,7 @@ function fetchImages(query) {
   return axios.get(`${BASE_URL}/?${searchParams}`);
 }
 
-async function handleLoadMore(event) {
+async function handleLoadMore() {
   queryParams.page += 1;
   loaderEl.style.display = 'block';
   loadMoreBtn.classList.add('is-hidden');
