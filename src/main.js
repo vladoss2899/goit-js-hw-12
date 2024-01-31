@@ -4,11 +4,9 @@ import 'izitoast/dist/css/iziToast.min.css';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-// Constants
 const BASE_URL = 'https://pixabay.com/api';
 const API_KEY = '41900218-778e908913d1efd90b8f97d56';
 
-// DOM Elements
 const elements = {
   searchForm: document.querySelector('.search-form'),
   gallery: document.querySelector('.gallery'),
@@ -17,7 +15,6 @@ const elements = {
   messageFinishGallery: document.querySelector('.finish-loader'),
 };
 
-// State
 let state = {
   query: '',
   page: 1,
@@ -25,17 +22,14 @@ let state = {
   pageSize: 40,
 };
 
-// Initialize SimpleLightbox
 const lightbox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
 });
 
-// Event Listeners
 elements.searchForm.addEventListener('submit', handleSearch);
 elements.loadMoreBtn.addEventListener('click', handleLoadMore);
 
-// Event Handlers
 async function handleSearch(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -82,7 +76,6 @@ async function handleLoadMore() {
   }
 }
 
-// Functions
 async function fetchImages() {
   const { query, page, pageSize } = state;
   const response = await axios.get(BASE_URL, {
