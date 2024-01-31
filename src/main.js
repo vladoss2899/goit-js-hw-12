@@ -31,10 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
     icon: 'none',
   };
 
-  searchForm.addEventListener('submit', handleSearch);
-  loadMoreBtn.addEventListener('click', handleLoadMore);
+  searchForm.addEventListener('submit', fetchData);
+  loadMoreBtn.addEventListener('click', loadMoreData);
 
-  async function handleSearch(event) {
+  async function fetchData(event) {
     event.preventDefault();
 
     loaderEl.style.display = 'block';
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const resp = await fetchImages(queryParams.query);
+      const resp = await getImages(queryParams.query);
       if (resp.data.hits.length === 0) {
         iziToast.error({
           ...iziToastConfig,
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'Sorry, there are no images matching your search query. Please try again!',
         });
       } else {
-        createMarkup(resp.data.hits);
+        renderData(resp.data.hits);
         queryParams.maxPage = Math.ceil(
           resp.data.totalHits / queryParams.pageSize
         );
@@ -72,11 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
       updateUI();
       form.reset();
     } catch (err) {
-      handleError();
+      showError();
     }
   }
 
-  async function fetchImages(query) {
+  async function getImages(query) {
     const searchParams = new URLSearchParams({
       key: API_KEY,
       q: query,
@@ -89,21 +89,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return axios.get(`${BASE_URL}/?${searchParams}`);
   }
 
-  async function handleLoadMore() {
+  async function loadMoreData() {
     queryParams.page += 1;
     loaderEl.style.display = 'block';
     loadMoreBtn.classList.add('is-hidden');
 
     try {
-      const respNext = await fetchImages(queryParams.query);
-      createMarkup(respNext.data.hits);
+      const respNext = await getImages(queryParams.query);
+      renderData(respNext.data.hits);
       updateUI();
     } catch (err) {
-      handleError();
+      showError();
     }
   }
 
-  function createMarkup(images) {
+  function renderData(images) {
     const markup = images
       .map(image => {
         const {
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loaderEl.style.display = 'none';
   }
 
-  function handleError() {
+  function showError() {
     iziToast.error({
       ...iziToastConfig,
       message: 'Oops, server connection error!',
