@@ -4,149 +4,167 @@ import 'izitoast/dist/css/iziToast.min.css';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-const BASE_URL = 'https://pixabay.com/api';
-const API_KEY = '41900218-778e908913d1efd90b8f97d56';
+document.addEventListener('DOMContentLoaded', () => {
+  const searchForm = document.querySelector('.search-form');
+  const gallery = document.querySelector('.gallery');
+  const loaderEl = document.querySelector('.loader');
+  const loadMoreBtn = document.querySelector('[data-action="load-more"]');
+  const messageFinishGallery = document.querySelector('.finish-loader');
 
-const elements = {
-  searchForm: document.querySelector('.search-form'),
-  gallery: document.querySelector('.gallery'),
-  loader: document.querySelector('.loader'),
-  loadMoreBtn: document.querySelector('[data-action="load-more"]'),
-  messageFinishGallery: document.querySelector('.finish-loader'),
-};
+  const BASE_URL = 'https://pixabay.com/api';
+  const API_KEY = '41900218-778e908913d1efd90b8f97d56';
+  const queryParams = {
+    query: '',
+    page: 1,
+    maxPage: 0,
+    pageSize: 40,
+  };
 
-let state = {
-  query: '',
-  page: 1,
-  maxPage: 0,
-  pageSize: 40,
-};
+  const lightbox = new SimpleLightbox('.gallery a', {
+    captionsData: 'alt',
+    captionDelay: 250,
+  });
 
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
+  const iziToastConfig = {
+    position: 'topRight',
+    backgroundColor: 'red',
+    icon: 'none',
+  };
 
-elements.searchForm.addEventListener('submit', handleSearch);
-elements.loadMoreBtn.addEventListener('click', handleLoadMore);
+  searchForm.addEventListener('submit', handleSearch);
+  loadMoreBtn.addEventListener('click', handleLoadMore);
 
-async function handleSearch(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const query = form.elements.query.value.trim();
+  async function handleSearch(event) {
+    event.preventDefault();
 
-  if (!query) {
-    return displayError('Enter a query value, please', 'green');
+    loaderEl.style.display = 'block';
+    loadMoreBtn.classList.add('is-hidden');
+    messageFinishGallery.classList.add('is-hidden');
+    gallery.innerHTML = '';
+
+    const form = event.currentTarget;
+    queryParams.query = form.elements.query.value.trim();
+    queryParams.page = 1;
+
+    if (!queryParams.query) {
+      loaderEl.style.display = 'none';
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Enter a query value, please',
+      });
+      return;
+    }
+
+    try {
+      const resp = await fetchImages(queryParams.query);
+      if (resp.data.hits.length === 0) {
+        iziToast.error({
+          ...iziToastConfig,
+          message:
+            'Sorry, there are no images matching your search query. Please try again!',
+        });
+      } else {
+        createMarkup(resp.data.hits);
+        queryParams.maxPage = Math.ceil(
+          resp.data.totalHits / queryParams.pageSize
+        );
+      }
+      if (queryParams.page === queryParams.maxPage) {
+        messageFinishGallery.classList.remove('is-hidden');
+        loadMoreBtn.classList.add('is-hidden');
+      } else {
+        loadMoreBtn.classList.remove('is-hidden');
+      }
+      form.reset();
+    } catch (err) {
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Oops, server connection error!',
+      });
+    } finally {
+      loaderEl.style.display = 'none';
+    }
   }
 
-  clearGallery();
-  state = { ...state, query, page: 1 };
-
-  try {
-    const images = await fetchImages();
-    if (images.length === 0) {
-      return displayError(
-        'Sorry, there are no images matching your search query. Please try again!',
-        'red'
-      );
-    } else {
-      createMarkup(images);
-    }
-    if (state.page === state.maxPage) {
-      displayMessage('No more images to load', true);
-    } else {
-      displayMessage('Load more images', false);
-    }
-    form.reset();
-  } catch (error) {
-    displayError('Oops, server connection error!', 'red');
-  }
-}
-
-async function handleLoadMore() {
-  state.page++;
-  try {
-    const images = await fetchImages();
-    createMarkup(images);
-    if (state.page === state.maxPage) {
-      displayMessage('No more images to load', true);
-    }
-  } catch (error) {
-    displayError('Oops, server connection error!', 'red');
-  }
-}
-
-async function fetchImages() {
-  const { query, page, pageSize } = state;
-  const response = await axios.get(BASE_URL, {
-    params: {
+  async function fetchImages(query) {
+    const searchParams = new URLSearchParams({
       key: API_KEY,
       q: query,
       image_type: 'photo',
       orientation: 'horizontal',
       safesearch: 'true',
-      per_page: pageSize,
-      page,
-    },
-  });
-  state.maxPage = Math.ceil(response.data.totalHits / state.pageSize);
-  return response.data.hits;
-}
-
-function createMarkup(images) {
-  const markup = images
-    .map(
-      image => `
-    <li class="gallery-card">
-      <a class="gallery-link" href="${image.largeImageURL}">
-        <img class="gallery-image" src="${image.webformatURL}" alt="${image.tags}" />
-      </a>
-      <div class="titles-box">
-        <div class="title-element">
-          <p class="title-text">Likes:</p>
-          <p class="title-value">${image.likes}</p>
-        </div>
-        <div class="title-element">
-          <p class="title-text">Views:</p>
-          <p class="title-value">${image.views}</p>
-        </div>
-        <div class="title-element">
-          <p class="title-text">Comments:</p>
-          <p class="title-value">${image.comments}</p>
-        </div>
-        <div class="title-element">
-          <p class="title-text">Downloads:</p>
-          <p class="title-value">${image.downloads}</p>
-        </div>
-      </div>
-    </li>
-  `
-    )
-    .join('');
-  elements.gallery.insertAdjacentHTML('beforeend', markup);
-  lightbox.refresh();
-}
-
-function clearGallery() {
-  elements.gallery.innerHTML = '';
-}
-
-function displayMessage(message, hideButton) {
-  elements.messageFinishGallery.textContent = message;
-  if (hideButton) {
-    elements.loadMoreBtn.classList.add('is-hidden');
-    elements.messageFinishGallery.classList.remove('is-hidden');
-  } else {
-    elements.loadMoreBtn.classList.remove('is-hidden');
-    elements.messageFinishGallery.classList.add('is-hidden');
+      per_page: queryParams.pageSize,
+      page: queryParams.page,
+    });
+    return axios.get(`${BASE_URL}/?${searchParams}`);
   }
-}
 
-function displayError(message, backgroundColor) {
-  iziToast.error({
-    message: message,
-    position: 'topRight',
-    backgroundColor: backgroundColor,
-    icon: 'none',
-  });
-}
+  async function handleLoadMore() {
+    queryParams.page += 1;
+    loaderEl.style.display = 'block';
+    loadMoreBtn.classList.add('is-hidden');
+
+    try {
+      const respNext = await fetchImages(queryParams.query);
+      createMarkup(respNext.data.hits);
+
+      if (queryParams.page === queryParams.maxPage) {
+        loadMoreBtn.classList.add('is-hidden');
+        messageFinishGallery.classList.remove('is-hidden');
+      } else {
+        loadMoreBtn.classList.remove('is-hidden');
+        window.scrollBy(0, window.innerHeight);
+      }
+    } catch (err) {
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Oops, server connection error!',
+      });
+    } finally {
+      loaderEl.style.display = 'none';
+    }
+  }
+
+  function createMarkup(images) {
+    const markup = images
+      .map(
+        ({
+          largeImageURL,
+          webformatURL,
+          tags,
+          likes,
+          views,
+          comments,
+          downloads,
+        }) => `
+            <li class="gallery-card">
+                <a class="gallery-link" href="${largeImageURL}">
+                    <img class="gallery-image" src="${webformatURL}" alt="${tags}"/>
+                </a>
+                <div class="titles-box">
+                    <div class="title-element">
+                        <p class="title-text">Likes:</p>
+                        <p class="title-value">${likes}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Views:</p>
+                        <p class="title-value">${views}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Comments:</p>
+                        <p class="title-value">${comments}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Downloads:</p>
+                        <p class="title-value">${downloads}</p>
+                    </div>
+                </div>
+            </li>
+        `
+      )
+      .join('');
+
+    gallery.insertAdjacentHTML('beforeend', markup);
+    lightbox.refresh();
+  }
+});
