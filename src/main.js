@@ -20,58 +20,59 @@ document.addEventListener('DOMContentLoaded', () => {
     pageSize: 40,
   };
 
+  const lightbox = new SimpleLightbox('.gallery a', {
+    captionsData: 'alt',
+    captionDelay: 250,
+  });
+
   const iziToastConfig = {
     position: 'topRight',
     backgroundColor: 'red',
     icon: 'none',
   };
 
-  const lightbox = new SimpleLightbox('.gallery a', {
-    captionsData: 'alt',
-    captionDelay: 250,
-  });
-
   searchForm.addEventListener('submit', handleSearch);
   loadMoreBtn.addEventListener('click', handleLoadMore);
 
   async function handleSearch(event) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const { query } = form.elements;
-    const searchTerm = query.value.trim();
 
-    if (!searchTerm) {
-      showErrorToast('Enter a query value, please');
+    loaderEl.style.display = 'block';
+    loadMoreBtn.classList.add('is-hidden');
+    messageFinishGallery.classList.add('is-hidden');
+    gallery.innerHTML = '';
+
+    const form = event.currentTarget;
+    queryParams.query = form.elements.query.value.trim();
+    queryParams.page = 1;
+
+    if (!queryParams.query) {
+      loaderEl.style.display = 'none';
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Enter a query value, please',
+      });
       return;
     }
 
     try {
-      await fetchAndDisplayImages(searchTerm, true);
-      form.reset();
-    } catch (error) {
-      showErrorToast('Oops, server connection error!');
-    }
-  }
-
-  async function fetchAndDisplayImages(query, isNewSearch) {
-    try {
-      loaderEl.style.display = 'block';
-      loadMoreBtn.classList.add('is-hidden');
-      messageFinishGallery.classList.add('is-hidden');
-
-      const resp = await fetchImages(query);
-      const { hits, totalHits } = resp.data;
-
-      if (hits.length === 0) {
-        showErrorToast(
-          'Sorry, there are no images matching your search query. Please try again!'
-        );
+      const resp = await fetchImages(queryParams.query);
+      if (resp.data.hits.length === 0) {
+        iziToast.error({
+          ...iziToastConfig,
+          message:
+            'Sorry, there are no images matching your search query. Please try again!',
+        });
       } else {
-        displayImages(hits, isNewSearch);
-        queryParams.maxPage = Math.ceil(totalHits / queryParams.pageSize);
+        createMarkup(resp.data.hits);
+        queryParams.maxPage = Math.ceil(
+          resp.data.totalHits / queryParams.pageSize
+        );
       }
-    } finally {
       updateUI();
+      form.reset();
+    } catch (err) {
+      handleError();
     }
   }
 
@@ -90,26 +91,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function handleLoadMore() {
     queryParams.page += 1;
+    loaderEl.style.display = 'block';
+    loadMoreBtn.classList.add('is-hidden');
+
     try {
-      await fetchAndDisplayImages(queryParams.query, false);
-    } catch (error) {
-      showErrorToast('Oops, server connection error!');
+      const respNext = await fetchImages(queryParams.query);
+      createMarkup(respNext.data.hits);
+      updateUI();
+    } catch (err) {
+      handleError();
     }
   }
 
-  function displayImages(images, isNewSearch) {
-    const generateImageMarkup = image => {
-      const {
-        largeImageURL: largeURL,
-        webformatURL: webURL,
-        tags,
-        likes,
-        views,
-        comments,
-        downloads,
-      } = image;
+  function createMarkup(images) {
+    const markup = images
+      .map(image => {
+        const {
+          largeImageURL: largeURL,
+          webformatURL: webURL,
+          tags,
+          likes,
+          views,
+          comments,
+          downloads,
+        } = image;
 
-      return `
+        return `
         <li class="gallery-card">
             <a class="gallery-link" href="${largeURL}">
                 <img class="gallery-image" src="${webURL}" alt="${tags}"/>
@@ -132,17 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="title-value">${downloads}</p>
                 </div>
             </div>
-        </li>`;
-    };
+        </li>
+      `;
+      })
+      .join('');
 
-    const markup = images.map(generateImageMarkup).join('');
-
-    if (isNewSearch) {
-      gallery.innerHTML = markup;
-    } else {
-      gallery.insertAdjacentHTML('beforeend', markup);
-    }
-
+    gallery.insertAdjacentHTML('beforeend', markup);
     lightbox.refresh();
   }
 
@@ -156,10 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loaderEl.style.display = 'none';
   }
 
-  function showErrorToast(message) {
+  function handleError() {
     iziToast.error({
       ...iziToastConfig,
-      message,
+      message: 'Oops, server connection error!',
     });
     loaderEl.style.display = 'none';
   }
