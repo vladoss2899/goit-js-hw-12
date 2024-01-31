@@ -63,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const { hits, totalHits } = resp.data;
 
       if (hits.length === 0) {
-        showErrorToast('Sorry, there are no images matching your search query. Please try again!');
+        showErrorToast(
+          'Sorry, there are no images matching your search query. Please try again!'
+        );
       } else {
         displayImages(hits, isNewSearch);
         queryParams.maxPage = Math.ceil(totalHits / queryParams.pageSize);
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayImages(images, isNewSearch) {
-    const markup = images.map(image => {
+    const generateImageMarkup = image => {
       const {
         largeImageURL: largeURL,
         webformatURL: webURL,
@@ -131,7 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         </li>`;
-    }).join('');
+    };
+
+    const markup = images.map(generateImageMarkup).join('');
 
     if (isNewSearch) {
       gallery.innerHTML = markup;
