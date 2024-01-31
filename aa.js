@@ -69,10 +69,20 @@ document.addEventListener('DOMContentLoaded', () => {
           resp.data.totalHits / queryParams.pageSize
         );
       }
-      updateUI();
+      if (queryParams.page === queryParams.maxPage) {
+        messageFinishGallery.classList.remove('is-hidden');
+        loadMoreBtn.classList.add('is-hidden');
+      } else {
+        loadMoreBtn.classList.remove('is-hidden');
+      }
       form.reset();
     } catch (err) {
-      handleError();
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Oops, server connection error!',
+      });
+    } finally {
+      loaderEl.style.display = 'none';
     }
   }
 
@@ -97,72 +107,64 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const respNext = await fetchImages(queryParams.query);
       createMarkup(respNext.data.hits);
-      updateUI();
+
+      if (queryParams.page === queryParams.maxPage) {
+        loadMoreBtn.classList.add('is-hidden');
+        messageFinishGallery.classList.remove('is-hidden');
+      } else {
+        loadMoreBtn.classList.remove('is-hidden');
+        window.scrollBy(0, window.innerHeight);
+      }
     } catch (err) {
-      handleError();
+      iziToast.error({
+        ...iziToastConfig,
+        message: 'Oops, server connection error!',
+      });
+    } finally {
+      loaderEl.style.display = 'none';
     }
   }
 
   function createMarkup(images) {
     const markup = images
-      .map(image => {
-        const {
-          largeImageURL: largeURL,
-          webformatURL: webURL,
+      .map(
+        ({
+          largeImageURL,
+          webformatURL,
           tags,
           likes,
           views,
           comments,
           downloads,
-        } = image;
-
-        return `
-        <li class="gallery-card">
-            <a class="gallery-link" href="${largeURL}">
-                <img class="gallery-image" src="${webURL}" alt="${tags}"/>
-            </a>
-            <div class="titles-box">
-                <div class="title-element">
-                    <p class="title-text">Likes:</p>
-                    <p class="title-value">${likes}</p>
+        }) => `
+            <li class="gallery-card">
+                <a class="gallery-link" href="${largeImageURL}">
+                    <img class="gallery-image" src="${webformatURL}" alt="${tags}"/>
+                </a>
+                <div class="titles-box">
+                    <div class="title-element">
+                        <p class="title-text">Likes:</p>
+                        <p class="title-value">${likes}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Views:</p>
+                        <p class="title-value">${views}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Comments:</p>
+                        <p class="title-value">${comments}</p>
+                    </div>
+                    <div class="title-element">
+                        <p class="title-text">Downloads:</p>
+                        <p class="title-value">${downloads}</p>
+                    </div>
                 </div>
-                <div class="title-element">
-                    <p class="title-text">Views:</p>
-                    <p class="title-value">${views}</p>
-                </div>
-                <div class="title-element">
-                    <p class="title-text">Comments:</p>
-                    <p class="title-value">${comments}</p>
-                </div>
-                <div class="title-element">
-                    <p class="title-text">Downloads:</p>
-                    <p class="title-value">${downloads}</p>
-                </div>
-            </div>
-        </li>
-      `;
-      })
+            </li>
+        `
+      )
       .join('');
 
     gallery.insertAdjacentHTML('beforeend', markup);
     lightbox.refresh();
-  }
-
-  function updateUI() {
-    if (queryParams.page === queryParams.maxPage) {
-      messageFinishGallery.classList.remove('is-hidden');
-      loadMoreBtn.classList.add('is-hidden');
-    } else {
-      loadMoreBtn.classList.remove('is-hidden');
-    }
-    loaderEl.style.display = 'none';
-  }
-
-  function handleError() {
-    iziToast.error({
-      ...iziToastConfig,
-      message: 'Oops, server connection error!',
-    });
-    loaderEl.style.display = 'none';
   }
 });
