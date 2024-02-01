@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     query: '',
     page: 1,
     maxPage: 0,
-    pageSize: 40,
+    pageSize: 15,
   };
 
   const lightbox = new SimpleLightbox('.gallery a', {
@@ -68,12 +68,29 @@ document.addEventListener('DOMContentLoaded', () => {
         queryParameters.maxPage = Math.ceil(
           response.data.totalHits / queryParameters.pageSize
         );
+
+        // Перевіряємо, чи є контент після отримання даних
+        if (response.data.hits.length > 0) {
+          loadMoreButton.classList.remove('is-hidden'); // Показуємо кнопку, якщо є контент
+        }
       }
       updateUI();
       formElement.reset();
     } catch (error) {
       showError();
+    } finally {
+      loaderElement.style.display = 'none';
     }
+  }
+
+  function updateUI() {
+    if (queryParameters.page === queryParameters.maxPage) {
+      messageFinishGalleryElement.classList.remove('is-hidden');
+      loadMoreButton.classList.add('is-hidden');
+    } else {
+      loadMoreButton.classList.remove('is-hidden');
+    }
+    loaderElement.style.display = 'none';
   }
 
   async function getImages(query) {
@@ -148,21 +165,30 @@ document.addEventListener('DOMContentLoaded', () => {
     lightbox.refresh();
   }
 
-  function updateUI() {
-    if (queryParameters.page === queryParameters.maxPage) {
-      messageFinishGalleryElement.classList.remove('is-hidden');
-      loadMoreButton.classList.add('is-hidden');
-    } else {
-      loadMoreButton.classList.remove('is-hidden');
-    }
-    loaderElement.style.display = 'none';
-  }
-
   function showError() {
     iziToast.error({
       ...iziToastConfig,
       message: 'Oops, server connection error!',
     });
-    loaderElement.style.display = 'none';
+  }
+
+  async function loadMoreData() {
+    queryParameters.page += 1;
+    loaderElement.style.display = 'block';
+    loadMoreButton.classList.add('is-hidden');
+
+    try {
+      const nextResponse = await getImages(queryParameters.query);
+      renderData(nextResponse.data.hits);
+      updateUI();
+
+      // Прокрутка сторінки до нижньої частини, де розташована кнопка "Load More"
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth', // Зробить прокрутку плавною
+      });
+    } catch (error) {
+      showError();
+    }
   }
 });
